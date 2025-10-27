@@ -1,0 +1,618 @@
+openapi: 3.0.3
+info:
+  title: VIBRA - Events Service API
+  description: API para gerenciamento de eventos, avaliações e sistema de interesse da plataforma VIBRA
+  version: 1.0.0
+  contact:
+    name: VIBRA Team
+    email: support@vibra.com
+
+servers:
+  - url: http://localhost:3002/api
+    description: Development server
+  - url: https://events-api.vibra.com/api
+    description: Production server
+
+tags:
+  - name: Events
+    description: Gerenciamento de eventos
+  - name: Reviews
+    description: Avaliações de eventos
+  - name: Interest
+    description: Sistema de interesse em eventos
+
+paths:
+  /events:
+    get:
+      tags:
+        - Events
+      summary: Listar eventos
+      description: Retorna lista de eventos com filtros opcionais
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filtrar por categoria
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: Data mínima do evento
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: Data máxima do evento
+        - in: query
+          name: latitude
+          schema:
+            type: number
+          description: Latitude para busca por proximidade
+        - in: query
+          name: longitude
+          schema:
+            type: number
+          description: Longitude para busca por proximidade
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 10
+          description: Raio em km para busca por proximidade
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Buscar por nome ou descrição
+      responses:
+        '200':
+          description: Lista de eventos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags:
+        - Events
+      summary: Criar novo evento
+      description: Organizador cria um novo evento
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '201':
+          description: Evento criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autenticado
+
+  /events/{id}:
+    get:
+      tags:
+        - Events
+      summary: Buscar evento por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID do evento
+      responses:
+        '200':
+          description: Evento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetail'
+        '404':
+          description: Evento não encontrado
+
+    put:
+      tags:
+        - Events
+      summary: Atualizar evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventInput'
+      responses:
+        '200':
+          description: Evento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '403':
+          description: Não autorizado (apenas organizador pode editar)
+        '404':
+          description: Evento não encontrado
+
+    delete:
+      tags:
+        - Events
+      summary: Deletar evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Evento deletado
+        '403':
+          description: Não autorizado
+        '404':
+          description: Evento não encontrado
+
+  /events/{id}/reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Listar avaliações de um evento
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: rating
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+          description: Filtrar por nota
+      responses:
+        '200':
+          description: Lista de avaliações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  total:
+                    type: integer
+                  averageRating:
+                    type: number
+                    format: float
+                  page:
+                    type: integer
+
+    post:
+      tags:
+        - Reviews
+      summary: Criar avaliação para evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rating
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  example: Evento incrível! Muito bem organizado.
+      responses:
+        '201':
+          description: Avaliação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Usuário já avaliou este evento
+        '404':
+          description: Evento não encontrado
+
+  /reviews/{id}:
+    put:
+      tags:
+        - Reviews
+      summary: Atualizar avaliação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Avaliação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '403':
+          description: Não autorizado
+
+    delete:
+      tags:
+        - Reviews
+      summary: Deletar avaliação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Avaliação deletada
+        '403':
+          description: Não autorizado
+
+  /events/{id}/interest:
+    get:
+      tags:
+        - Interest
+      summary: Listar usuários interessados no evento
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [interested, going]
+      responses:
+        '200':
+          description: Lista de interessados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  interests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventInterest'
+                  totalInterested:
+                    type: integer
+                  totalGoing:
+                    type: integer
+
+    post:
+      tags:
+        - Interest
+      summary: Marcar interesse em evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [interested, going]
+                  example: going
+      responses:
+        '201':
+          description: Interesse registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventInterest'
+        '400':
+          description: Interesse já registrado
+
+  /events/{id}/interest/{interestId}:
+    put:
+      tags:
+        - Interest
+      summary: Atualizar status de interesse
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: interestId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [interested, going]
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventInterest'
+
+    delete:
+      tags:
+        - Interest
+      summary: Remover interesse do evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: interestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Interesse removido
+
+  /categories:
+    get:
+      tags:
+        - Events
+      summary: Listar categorias de eventos
+      responses:
+        '200':
+          description: Lista de categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: [Show, Festa, Bar, Balada, Festival, Teatro, Esporte]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    EventInput:
+      type: object
+      required:
+        - name
+        - description
+        - category
+        - location
+        - latitude
+        - longitude
+        - startDate
+      properties:
+        name:
+          type: string
+          example: Festival de Música Eletrônica
+        description:
+          type: string
+          example: Grande festival com DJs internacionais
+        category:
+          type: string
+          example: Festival
+        location:
+          type: string
+          example: Parque Ibirapuera, São Paulo - SP
+        latitude:
+          type: number
+          format: float
+          example: -23.5873
+        longitude:
+          type: number
+          format: float
+          example: -46.6573
+        startDate:
+          type: string
+          format: date-time
+          example: 2024-12-20T18:00:00Z
+        endDate:
+          type: string
+          format: date-time
+          example: 2024-12-21T04:00:00Z
+        imageUrl:
+          type: string
+          example: https://example.com/event-image.jpg
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+        description:
+          type: string
+        organizerId:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        imageUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EventDetail:
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            averageRating:
+              type: number
+              format: float
+            totalReviews:
+              type: integer
+            totalInterested:
+              type: integer
+            totalGoing:
+              type: integer
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        eventId:
+          type: integer
+        userId:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    EventInterest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        eventId:
+          type: integer
+        userId:
+          type: string
+        status:
+          type: string
+          enum: [interested, going]
+        createdAt:
+          type: string
+          format: date-time

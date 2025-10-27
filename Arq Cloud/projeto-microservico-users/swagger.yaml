@@ -1,0 +1,550 @@
+openapi: 3.0.3
+info:
+  title: VIBRA - Users Service API
+  description: API para gerenciamento de usuários, autenticação e funcionalidades sociais da plataforma VIBRA
+  version: 1.0.0
+  contact:
+    name: VIBRA Team
+    email: support@vibra.com
+
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://users-api.vibra.com/api
+    description: Production server
+
+tags:
+  - name: Users
+    description: Operações de gerenciamento de usuários
+  - name: Auth
+    description: Autenticação e autorização
+  - name: Friendships
+    description: Sistema de amizades
+  - name: Timeline
+    description: Linha do tempo de atividades
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Registrar novo usuário
+      description: Cria uma nova conta de usuário com e-mail e senha
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: João Silva
+                email:
+                  type: string
+                  format: email
+                  example: joao@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: senha123
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Dados inválidos
+        '409':
+          description: E-mail já cadastrado
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Realizar login
+      description: Autentica um usuário e retorna um token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: joao@example.com
+                password:
+                  type: string
+                  format: password
+                  example: senha123
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Credenciais inválidas
+
+  /auth/social:
+    post:
+      tags:
+        - Auth
+      summary: Autenticação social
+      description: Login/registro via Google ou Facebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+                - token
+              properties:
+                provider:
+                  type: string
+                  enum: [google, facebook]
+                  example: google
+                token:
+                  type: string
+                  example: ya29.a0AfH6SMBx...
+      responses:
+        '200':
+          description: Autenticação realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Listar usuários
+      description: Retorna uma lista paginada de usuários
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Buscar por nome ou email
+      responses:
+        '200':
+          description: Lista de usuários
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Buscar usuário por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do usuário
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado
+
+    put:
+      tags:
+        - Users
+      summary: Atualizar perfil do usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                profilePicture:
+                  type: string
+                location:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+      responses:
+        '200':
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          description: Não autorizado
+        '404':
+          description: Usuário não encontrado
+
+    delete:
+      tags:
+        - Users
+      summary: Deletar usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Usuário deletado
+        '403':
+          description: Não autorizado
+        '404':
+          description: Usuário não encontrado
+
+  /friendships:
+    get:
+      tags:
+        - Friendships
+      summary: Listar amizades do usuário autenticado
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, accepted, rejected]
+      responses:
+        '200':
+          description: Lista de amizades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Friendship'
+
+    post:
+      tags:
+        - Friendships
+      summary: Enviar solicitação de amizade
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - friendId
+              properties:
+                friendId:
+                  type: string
+                  example: 507f1f77bcf86cd799439011
+      responses:
+        '201':
+          description: Solicitação enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Friendship'
+        '400':
+          description: Solicitação já existe
+
+  /friendships/{id}:
+    put:
+      tags:
+        - Friendships
+      summary: Aceitar ou rejeitar solicitação de amizade
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [accepted, rejected]
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Friendship'
+
+    delete:
+      tags:
+        - Friendships
+      summary: Remover amizade
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Amizade removida
+
+  /timeline:
+    get:
+      tags:
+        - Timeline
+      summary: Buscar timeline do usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+          description: ID do usuário (se não informado, retorna do usuário autenticado)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Timeline
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimelinePost'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+
+    post:
+      tags:
+        - Timeline
+      summary: Criar post na timeline
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - type
+              properties:
+                content:
+                  type: string
+                type:
+                  type: string
+                  enum: [post, event, review]
+      responses:
+        '201':
+          description: Post criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimelinePost'
+
+  /timeline/{id}:
+    delete:
+      tags:
+        - Timeline
+      summary: Deletar post da timeline
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Post deletado
+        '403':
+          description: Não autorizado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          example: João Silva
+        email:
+          type: string
+          format: email
+          example: joao@example.com
+        authProvider:
+          type: string
+          enum: [local, google, facebook]
+          example: local
+        profilePicture:
+          type: string
+          example: https://example.com/profile.jpg
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+              example: -23.5505
+            lng:
+              type: number
+              example: -46.6333
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Usuário criado com sucesso
+        user:
+          $ref: '#/components/schemas/User'
+
+    Friendship:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        userId:
+          type: string
+        friendId:
+          type: string
+        friend:
+          $ref: '#/components/schemas/User'
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        createdAt:
+          type: string
+          format: date-time
+
+    TimelinePost:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        userId:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        content:
+          type: string
+        type:
+          type: string
+          enum: [post, event, review]
+        createdAt:
+          type: string
+          format: date-time
