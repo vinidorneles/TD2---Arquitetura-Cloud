@@ -69,12 +69,20 @@ paths:
                     type: object
                   events:
                     type: array
+                    items:
+                      type: object
                   friends:
                     type: array
+                    items:
+                      type: object
                   timeline:
                     type: array
+                    items:
+                      type: object
                   recommendations:
                     type: array
+                    items:
+                      type: object
 
   /users/{id}:
     get:
