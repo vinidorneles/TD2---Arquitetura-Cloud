@@ -6,27 +6,22 @@ const routes = require('./routes');
 
 const app = express();
 
-// Security middleware
 app.use(helmet());
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100
 });
 app.use(limiter);
 
-// CORS
 app.use(cors({
   origin: process.env.CORS_ORIGIN?.split(',') || '*',
   credentials: true
 }));
 
-// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -40,10 +35,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
 app.use('/api', routes);
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     service: 'VIBRA BFF Gateway',
@@ -74,12 +67,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada' });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

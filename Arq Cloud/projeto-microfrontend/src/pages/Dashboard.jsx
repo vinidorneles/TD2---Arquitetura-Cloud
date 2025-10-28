@@ -40,7 +40,7 @@ function Dashboard() {
       </div>
 
       <div className="dashboard-grid">
-        {/* Upcoming Events */}
+        {}
         <div className="dashboard-card">
           <h2>Próximos Eventos</h2>
           {dashboard?.upcomingEvents?.length > 0 ? (
@@ -62,7 +62,7 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Nearby Events */}
+        {}
         <div className="dashboard-card">
           <h2>Eventos Próximos</h2>
           {nearbyEvents.length > 0 ? (
@@ -81,7 +81,7 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Friends */}
+        {}
         <div className="dashboard-card">
           <h2>Amigos ({dashboard?.friends?.length || 0})</h2>
           {dashboard?.friends?.length > 0 ? (
@@ -100,7 +100,7 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Notifications */}
+        {}
         <div className="dashboard-card">
           <h2>Notificações</h2>
           {dashboard?.notifications?.length > 0 ? (

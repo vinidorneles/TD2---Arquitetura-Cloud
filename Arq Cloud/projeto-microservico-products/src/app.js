@@ -11,19 +11,16 @@ const interestRoutes = require('./routes/interestRoutes');
 
 const app = express();
 
-// Middleware
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*'
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Swagger documentation
 const swaggerFile = fs.readFileSync(path.join(__dirname, '../swagger.yaml'), 'utf8');
 const swaggerDocument = YAML.parse(swaggerFile);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -32,17 +29,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
 app.use('/api/events', eventRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api', interestRoutes);
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada' });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

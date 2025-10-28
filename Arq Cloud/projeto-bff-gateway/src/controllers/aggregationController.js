@@ -2,19 +2,11 @@ const usersService = require('../services/usersService');
 const eventsService = require('../services/eventsService');
 const functionsService = require('../services/functionsService');
 
-/**
- * Aggregation Controller
- *
- * Provides endpoints that aggregate data from multiple microservices
- */
-
-// Get user dashboard with aggregated data
 exports.getDashboard = async (req, res) => {
   try {
     const userId = req.userId;
     const token = req.token;
 
-    // Fetch data from multiple services in parallel
     const [user, events, friendships, timeline, notifications] = await Promise.all([
       usersService.getUserById(userId, token).catch(() => null),
       eventsService.getEvents({ limit: 5 }).catch(() => ({ events: [] })),
@@ -36,20 +28,17 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
-// Get event details with user info and aggregated stats
 exports.getEventDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const token = req.token;
 
-    // Fetch event, reviews, and interests in parallel
     const [event, reviews, interests] = await Promise.all([
       eventsService.getEventById(id),
       eventsService.getReviews(id, { limit: 10 }),
       eventsService.getInterests(id, {})
     ]);
 
-    // Fetch organizer info
     let organizer = null;
     if (event.organizerId && token) {
       organizer = await usersService.getUserById(event.organizerId, token).catch(() => null);
@@ -72,21 +61,18 @@ exports.getEventDetail = async (req, res) => {
   }
 };
 
-// Get nearby events with user location
 exports.getNearbyEvents = async (req, res) => {
   try {
     const userId = req.userId;
     const token = req.token;
     const { radius = 10 } = req.query;
 
-    // Get user location
     const user = await usersService.getUserById(userId, token);
 
     if (!user.location || !user.location.lat || !user.location.lng) {
       return res.status(400).json({ message: 'Localização do usuário não definida' });
     }
 
-    // Get nearby events
     const events = await eventsService.getEvents({
       latitude: user.location.lat,
       longitude: user.location.lng,
@@ -106,13 +92,11 @@ exports.getNearbyEvents = async (req, res) => {
   }
 };
 
-// Get friend's activities (timeline + events they're going)
 exports.getFriendActivities = async (req, res) => {
   try {
     const { friendId } = req.params;
     const token = req.token;
 
-    // Fetch friend data and timeline
     const [friend, timeline] = await Promise.all([
       usersService.getUserById(friendId, token),
       usersService.getTimeline({ userId: friendId, limit: 20 }, token)
@@ -128,7 +112,6 @@ exports.getFriendActivities = async (req, res) => {
   }
 };
 
-// Search across users and events
 exports.globalSearch = async (req, res) => {
   try {
     const { q } = req.query;
@@ -138,7 +121,6 @@ exports.globalSearch = async (req, res) => {
       return res.status(400).json({ message: 'Query deve ter no mínimo 2 caracteres' });
     }
 
-    // Search in parallel
     const [users, events] = await Promise.all([
       usersService.getUsers({ search: q, limit: 10 }, token).catch(() => ({ users: [] })),
       eventsService.getEvents({ search: q, limit: 10 }).catch(() => ({ events: [] }))

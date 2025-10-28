@@ -6,14 +6,12 @@ const { sendNotification, getUserNotifications } = require('./functions/sendNoti
 
 const app = express();
 
-// Middleware
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*'
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -27,12 +25,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Function Routes (HTTP Triggers)
 app.post('/api/functions/review-event', createReviewEvent);
 app.post('/api/functions/notification', sendNotification);
 app.get('/api/functions/notifications/:userId', getUserNotifications);
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     service: 'VIBRA Functions Service',
@@ -47,12 +43,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Função não encontrada' });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

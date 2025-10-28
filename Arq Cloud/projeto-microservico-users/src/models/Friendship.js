@@ -20,7 +20,6 @@ const friendshipSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create compound index to prevent duplicate friendships
 friendshipSchema.index({ userId: 1, friendId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Friendship', friendshipSchema);

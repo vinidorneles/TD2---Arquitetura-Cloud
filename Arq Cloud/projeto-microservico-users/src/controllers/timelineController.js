@@ -1,6 +1,5 @@
 const Timeline = require('../models/Timeline');
 
-// Get timeline posts
 exports.getTimeline = async (req, res) => {
   try {
     const { userId, page = 1, limit = 20 } = req.query;
@@ -27,7 +26,6 @@ exports.getTimeline = async (req, res) => {
   }
 };
 
-// Create timeline post
 exports.createPost = async (req, res) => {
   try {
     const { content, type } = req.body;
@@ -52,7 +50,6 @@ exports.createPost = async (req, res) => {
   }
 };
 
-// Delete timeline post
 exports.deletePost = async (req, res) => {
   try {
     const { id } = req.params;
@@ -63,7 +60,6 @@ exports.deletePost = async (req, res) => {
       return res.status(404).json({ message: 'Post não encontrado' });
     }
 
-    // Check if user owns the post
     if (post.userId.toString() !== req.userId) {
       return res.status(403).json({ message: 'Não autorizado' });
     }

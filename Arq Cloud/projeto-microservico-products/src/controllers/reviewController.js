@@ -1,6 +1,5 @@
 const { getPool, sql } = require('../config/database');
 
-// Get reviews for an event
 exports.getReviews = async (req, res) => {
   try {
     const { id } = req.params;
@@ -19,20 +18,17 @@ exports.getReviews = async (req, res) => {
 
     query += ' ORDER BY createdAt DESC';
 
-    // Count total
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
     let countRequest = pool.request();
     params.forEach(p => countRequest.input(p.name, p.type, p.value));
     const countResult = await countRequest.query(countQuery);
     const total = countResult.recordset[0].total;
 
-    // Get average rating
     const avgResult = await pool.request()
       .input('eventId', sql.Int, id)
       .query('SELECT AVG(CAST(rating AS FLOAT)) as averageRating FROM Reviews WHERE eventId = @eventId');
     const averageRating = avgResult.recordset[0].averageRating || 0;
 
-    // Get paginated results
     query += ' OFFSET @skip ROWS FETCH NEXT @limit ROWS ONLY';
     params.push(
       { name: 'skip', type: sql.Int, value: skip },
@@ -55,7 +51,6 @@ exports.getReviews = async (req, res) => {
   }
 };
 
-// Create review
 exports.createReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,7 +63,6 @@ exports.createReview = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if event exists
     const eventResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT id FROM Events WHERE id = @id');
@@ -77,7 +71,6 @@ exports.createReview = async (req, res) => {
       return res.status(404).json({ message: 'Evento não encontrado' });
     }
 
-    // Check if user already reviewed this event
     const existingReview = await pool.request()
       .input('eventId', sql.Int, id)
       .input('userId', sql.NVarChar, userId)
@@ -87,7 +80,6 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ message: 'Usuário já avaliou este evento' });
     }
 
-    // Create review
     const result = await pool.request()
       .input('eventId', sql.Int, id)
       .input('userId', sql.NVarChar, userId)
@@ -106,7 +98,6 @@ exports.createReview = async (req, res) => {
   }
 };
 
-// Update review
 exports.updateReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -119,7 +110,6 @@ exports.updateReview = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if review exists and user owns it
     const reviewResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT userId FROM Reviews WHERE id = @id');
@@ -132,7 +122,6 @@ exports.updateReview = async (req, res) => {
       return res.status(403).json({ message: 'Não autorizado' });
     }
 
-    // Build update query dynamically
     const updates = [];
     const params = [{ name: 'id', type: sql.Int, value: parseInt(id) }];
 
@@ -168,7 +157,6 @@ exports.updateReview = async (req, res) => {
   }
 };
 
-// Delete review
 exports.deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -176,7 +164,6 @@ exports.deleteReview = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if review exists and user owns it
     const reviewResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT userId FROM Reviews WHERE id = @id');

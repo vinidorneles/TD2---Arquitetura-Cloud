@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+  title: VIBRA - BFF Gateway API
+  description: Backend for Frontend que agrega dados dos microservices Users e Events, além de integração com Functions
+  version: 1.0.0
+  contact:
+    name: VIBRA Team
+    email: support@vibra.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://bff.vibra.com/api
+    description: Production server
+
+tags:
+  - name: Aggregation
+    description: Agregação de dados entre microservices
+  - name: Proxy
+    description: Proxy para microservices
+  - name: Events Processing
+    description: Integração com Functions para processamento de eventos
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Verifica se o BFF Gateway está funcionando
+      responses:
+        '200':
+          description: Gateway funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /dashboard/{userId}:
+    get:
+      tags:
+        - Aggregation
+      summary: Dashboard agregado do usuário
+      description: Agrega dados do usuário, seus eventos, amigos e timeline
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dashboard agregado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                  events:
+                    type: array
+                  friends:
+                    type: array
+                  timeline:
+                    type: array
+                  recommendations:
+                    type: array
+
+  /users/{id}:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy para Users Service - Get User
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User data
+        '404':
+          description: User not found
+
+  /events:
+    get:
+      tags:
+        - Proxy
+      summary: Proxy para Events Service - List Events
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Events list
+
+    post:
+      tags:
+        - Events Processing
+      summary: Criar evento via Function
+      description: Proxy para Events Service e dispara function para processamento
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                location:
+                  type: string
+                startDate:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Event created and function triggered
+
+  /events/{id}/reviews:
+    post:
+      tags:
+        - Events Processing
+      summary: Criar review via Function
+      description: Cria review no Events Service e dispara function para processamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Review created and function triggered
+
+  /notifications/send:
+    post:
+      tags:
+        - Events Processing
+      summary: Enviar notificação via Function
+      description: Dispara function para envio de notificações
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                type:
+                  type: string
+                  enum: [event_reminder, friend_request, review_created]
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Notification sent
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

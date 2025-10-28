@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 VIBRA BFF Gateway running on port ${PORT}`);
-  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+  console.log(`💚 Health check: http:
   console.log(`\n🔗 Connected Services:`);
   console.log(`   Users Service: ${process.env.USERS_SERVICE_URL}`);
   console.log(`   Events Service: ${process.env.EVENTS_SERVICE_URL}`);

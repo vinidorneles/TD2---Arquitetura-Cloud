@@ -2,13 +2,6 @@ const usersService = require('../services/usersService');
 const eventsService = require('../services/eventsService');
 const functionsService = require('../services/functionsService');
 
-/**
- * Proxy Controller
- *
- * Proxies requests to microservices and functions
- */
-
-// ========== Auth Proxy ==========
 exports.register = async (req, res) => {
   try {
     const result = await usersService.register(req.body);
@@ -36,7 +29,6 @@ exports.socialAuth = async (req, res) => {
   }
 };
 
-// ========== Users Proxy ==========
 exports.getUsers = async (req, res) => {
   try {
     const result = await usersService.getUsers(req.query, req.token);
@@ -73,7 +65,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// ========== Events Proxy ==========
 exports.getEvents = async (req, res) => {
   try {
     const result = await eventsService.getEvents(req.query);
@@ -96,7 +87,6 @@ exports.createEvent = async (req, res) => {
   try {
     const result = await eventsService.createEvent(req.body, req.userId);
 
-    // Trigger notification function asynchronously
     functionsService.triggerNotification({
       type: 'new_event',
       userId: req.userId,
@@ -129,13 +119,11 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-// ========== Reviews Proxy with Event Trigger ==========
 exports.createReviewViaEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { rating, comment } = req.body;
 
-    // Trigger function to create review asynchronously via event
     const result = await functionsService.triggerReviewEvent({
       eventId: parseInt(eventId),
       userId: req.userId,
@@ -176,7 +164,6 @@ exports.deleteReview = async (req, res) => {
   }
 };
 
-// ========== Friendships Proxy ==========
 exports.getFriendships = async (req, res) => {
   try {
     const result = await usersService.getFriendships(req.query, req.token);
@@ -195,7 +182,6 @@ exports.createFriendship = async (req, res) => {
   }
 };
 
-// ========== Notifications Proxy ==========
 exports.getNotifications = async (req, res) => {
   try {
     const result = await functionsService.getUserNotifications(req.userId);

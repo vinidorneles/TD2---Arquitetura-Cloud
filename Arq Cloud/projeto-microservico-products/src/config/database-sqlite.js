@@ -1,12 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-// Create SQLite database
 const db = new Database(path.join(__dirname, '../../vibra_events.db'));
 
-// Initialize database schema
 const initDatabase = () => {
-  // Create Events table
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS Events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +23,6 @@ const initDatabase = () => {
     )
   `);
 
-  // Create Reviews table
   db.exec(`
     CREATE TABLE IF NOT EXISTS Reviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +36,6 @@ const initDatabase = () => {
     )
   `);
 
-  // Create EventInterest table
   db.exec(`
     CREATE TABLE IF NOT EXISTS EventInterest (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +48,6 @@ const initDatabase = () => {
     )
   `);
 
-  // Create indexes
   db.exec(`CREATE INDEX IF NOT EXISTS idx_events_category ON Events(category)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_events_startDate ON Events(startDate)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_reviews_eventId ON Reviews(eventId)`);

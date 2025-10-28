@@ -3,7 +3,6 @@ const axios = require('axios');
 const EVENTS_SERVICE_URL = process.env.EVENTS_SERVICE_URL;
 
 class EventsService {
-  // Events CRUD
   async getEvents(params) {
     const response = await axios.get(`${EVENTS_SERVICE_URL}/events`, { params });
     return response.data;
@@ -40,7 +39,6 @@ class EventsService {
     return response.data;
   }
 
-  // Reviews
   async getReviews(eventId, params) {
     const response = await axios.get(`${EVENTS_SERVICE_URL}/events/${eventId}/reviews`, { params });
     return response.data;
@@ -67,7 +65,6 @@ class EventsService {
     return response.data;
   }
 
-  // Interest
   async getInterests(eventId, params) {
     const response = await axios.get(`${EVENTS_SERVICE_URL}/events/${eventId}/interest`, { params });
     return response.data;

@@ -19,7 +19,6 @@ const timelineSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
 timelineSchema.index({ userId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Timeline', timelineSchema);

@@ -2,14 +2,12 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 
-// Generate JWT token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 };
 
-// Register new user
 exports.register = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -19,13 +17,11 @@ exports.register = async (req, res) => {
 
     const { name, email, password } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ message: 'E-mail já cadastrado' });
     }
 
-    // Create new user
     const user = new User({
       name,
       email,
@@ -48,7 +44,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login user
 exports.login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -58,13 +53,11 @@ exports.login = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -82,7 +75,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Social authentication (Google/Facebook)
 exports.socialAuth = async (req, res) => {
   try {
     const { provider, token, email, name, profilePicture } = req.body;
@@ -91,14 +83,10 @@ exports.socialAuth = async (req, res) => {
       return res.status(400).json({ message: 'Provedor inválido' });
     }
 
-    // In production, validate the token with the provider's API
-    // For now, we'll trust the client
-
-    // Check if user exists
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user
+
       user = new User({
         name,
         email,

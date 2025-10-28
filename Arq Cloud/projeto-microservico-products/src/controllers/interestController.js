@@ -1,6 +1,5 @@
 const { getPool, sql } = require('../config/database');
 
-// Get interests for an event
 exports.getInterests = async (req, res) => {
   try {
     const { id } = req.params;
@@ -22,7 +21,6 @@ exports.getInterests = async (req, res) => {
     params.forEach(p => request.input(p.name, p.type, p.value));
     const result = await request.query(query);
 
-    // Get totals
     const totalsResult = await pool.request()
       .input('eventId', sql.Int, id)
       .query(`
@@ -42,7 +40,6 @@ exports.getInterests = async (req, res) => {
   }
 };
 
-// Create interest
 exports.createInterest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -55,7 +52,6 @@ exports.createInterest = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if event exists
     const eventResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT id FROM Events WHERE id = @id');
@@ -64,7 +60,6 @@ exports.createInterest = async (req, res) => {
       return res.status(404).json({ message: 'Evento não encontrado' });
     }
 
-    // Check if user already has interest
     const existingInterest = await pool.request()
       .input('eventId', sql.Int, id)
       .input('userId', sql.NVarChar, userId)
@@ -74,7 +69,6 @@ exports.createInterest = async (req, res) => {
       return res.status(400).json({ message: 'Interesse já registrado' });
     }
 
-    // Create interest
     const result = await pool.request()
       .input('eventId', sql.Int, id)
       .input('userId', sql.NVarChar, userId)
@@ -92,7 +86,6 @@ exports.createInterest = async (req, res) => {
   }
 };
 
-// Update interest
 exports.updateInterest = async (req, res) => {
   try {
     const { id, interestId } = req.params;
@@ -105,7 +98,6 @@ exports.updateInterest = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if interest exists and user owns it
     const interestResult = await pool.request()
       .input('id', sql.Int, interestId)
       .input('eventId', sql.Int, id)
@@ -119,7 +111,6 @@ exports.updateInterest = async (req, res) => {
       return res.status(403).json({ message: 'Não autorizado' });
     }
 
-    // Update interest
     const result = await pool.request()
       .input('id', sql.Int, interestId)
       .input('status', sql.NVarChar, status)
@@ -137,7 +128,6 @@ exports.updateInterest = async (req, res) => {
   }
 };
 
-// Delete interest
 exports.deleteInterest = async (req, res) => {
   try {
     const { id, interestId } = req.params;
@@ -145,7 +135,6 @@ exports.deleteInterest = async (req, res) => {
 
     const pool = await getPool();
 
-    // Check if interest exists and user owns it
     const interestResult = await pool.request()
       .input('id', sql.Int, interestId)
       .input('eventId', sql.Int, id)

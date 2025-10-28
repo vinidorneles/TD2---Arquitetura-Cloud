@@ -1,7 +1,6 @@
 const Friendship = require('../models/Friendship');
 const User = require('../models/User');
 
-// Get user's friendships
 exports.getFriendships = async (req, res) => {
   try {
     const { status } = req.query;
@@ -20,7 +19,6 @@ exports.getFriendships = async (req, res) => {
       .populate('friendId', 'name email profilePicture')
       .sort({ createdAt: -1 });
 
-    // Format response to always show the other user as 'friend'
     const formattedFriendships = friendships.map(friendship => {
       const isUserInitiator = friendship.userId._id.toString() === userId;
       return {
@@ -40,24 +38,20 @@ exports.getFriendships = async (req, res) => {
   }
 };
 
-// Send friend request
 exports.createFriendship = async (req, res) => {
   try {
     const { friendId } = req.body;
     const userId = req.userId;
 
-    // Check if trying to add yourself
     if (userId === friendId) {
       return res.status(400).json({ message: 'Não é possível adicionar a si mesmo' });
     }
 
-    // Check if friend exists
     const friendExists = await User.findById(friendId);
     if (!friendExists) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    // Check if friendship already exists
     const existingFriendship = await Friendship.findOne({
       $or: [
         { userId, friendId },
@@ -69,7 +63,6 @@ exports.createFriendship = async (req, res) => {
       return res.status(400).json({ message: 'Solicitação de amizade já existe' });
     }
 
-    // Create friendship
     const friendship = new Friendship({
       userId,
       friendId,
@@ -93,7 +86,6 @@ exports.createFriendship = async (req, res) => {
   }
 };
 
-// Update friendship status (accept/reject)
 exports.updateFriendship = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,7 +102,6 @@ exports.updateFriendship = async (req, res) => {
       return res.status(404).json({ message: 'Amizade não encontrada' });
     }
 
-    // Only the recipient can accept/reject
     if (friendship.friendId.toString() !== userId) {
       return res.status(403).json({ message: 'Não autorizado' });
     }
@@ -134,7 +125,6 @@ exports.updateFriendship = async (req, res) => {
   }
 };
 
-// Delete friendship
 exports.deleteFriendship = async (req, res) => {
   try {
     const { id } = req.params;
@@ -146,7 +136,6 @@ exports.deleteFriendship = async (req, res) => {
       return res.status(404).json({ message: 'Amizade não encontrada' });
     }
 
-    // Check if user is part of this friendship
     if (friendship.userId.toString() !== userId && friendship.friendId.toString() !== userId) {
       return res.status(403).json({ message: 'Não autorizado' });
     }

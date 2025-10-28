@@ -1,6 +1,5 @@
 const User = require('../models/User');
 
-// Get all users
 exports.getUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search } = req.query;
@@ -35,7 +34,6 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// Get user by ID
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -51,12 +49,10 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Update user
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if user is updating their own profile
     if (req.userId !== id) {
       return res.status(403).json({ message: 'Não autorizado' });
     }
@@ -85,12 +81,10 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if user is deleting their own account
     if (req.userId !== id) {
       return res.status(403).json({ message: 'Não autorizado' });
     }

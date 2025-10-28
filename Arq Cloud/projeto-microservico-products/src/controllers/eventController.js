@@ -1,6 +1,5 @@
 const { getPool, sql } = require('../config/database');
 
-// Get all events with filters
 exports.getEvents = async (req, res) => {
   try {
     const {
@@ -41,9 +40,8 @@ exports.getEvents = async (req, res) => {
       params.push({ name: 'search', type: sql.NVarChar, value: `%${search}%` });
     }
 
-    // Calculate distance if lat/lng provided (simplified version)
     if (latitude && longitude) {
-      // In production, use geography type and STDistance
+
       query += ` AND (
         6371 * ACOS(
           COS(RADIANS(@latitude)) * COS(RADIANS(latitude)) *
@@ -60,14 +58,12 @@ exports.getEvents = async (req, res) => {
 
     query += ' ORDER BY startDate DESC';
 
-    // Count total
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
     let countRequest = pool.request();
     params.forEach(p => countRequest.input(p.name, p.type, p.value));
     const countResult = await countRequest.query(countQuery);
     const total = countResult.recordset[0].total;
 
-    // Get paginated results
     query += ' OFFSET @skip ROWS FETCH NEXT @limit ROWS ONLY';
     params.push(
       { name: 'skip', type: sql.Int, value: skip },
@@ -90,13 +86,11 @@ exports.getEvents = async (req, res) => {
   }
 };
 
-// Get event by ID
 exports.getEventById = async (req, res) => {
   try {
     const { id } = req.params;
     const pool = await getPool();
 
-    // Get event
     const eventResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT * FROM Events WHERE id = @id');
@@ -107,7 +101,6 @@ exports.getEventById = async (req, res) => {
 
     const event = eventResult.recordset[0];
 
-    // Get statistics
     const statsResult = await pool.request()
       .input('eventId', sql.Int, id)
       .query(`
@@ -133,7 +126,6 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-// Create event
 exports.createEvent = async (req, res) => {
   try {
     const {
@@ -148,7 +140,7 @@ exports.createEvent = async (req, res) => {
       imageUrl
     } = req.body;
 
-    const organizerId = req.userId; // From auth middleware
+    const organizerId = req.userId;
 
     const pool = await getPool();
 
@@ -176,13 +168,11 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// Update event
 exports.updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const pool = await getPool();
 
-    // Check if event exists and user is organizer
     const eventResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT organizerId FROM Events WHERE id = @id');
@@ -235,13 +225,11 @@ exports.updateEvent = async (req, res) => {
   }
 };
 
-// Delete event
 exports.deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const pool = await getPool();
 
-    // Check if event exists and user is organizer
     const eventResult = await pool.request()
       .input('id', sql.Int, id)
       .query('SELECT organizerId FROM Events WHERE id = @id');
@@ -265,7 +253,6 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-// Get categories
 exports.getCategories = async (req, res) => {
   try {
     const categories = ['Show', 'Festa', 'Bar', 'Balada', 'Festival', 'Teatro', 'Esporte', 'Outros'];

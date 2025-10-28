@@ -3,7 +3,6 @@ const axios = require('axios');
 const USERS_SERVICE_URL = process.env.USERS_SERVICE_URL;
 
 class UsersService {
-  // Auth endpoints
   async register(data) {
     const response = await axios.post(`${USERS_SERVICE_URL}/auth/register`, data);
     return response.data;
@@ -19,7 +18,6 @@ class UsersService {
     return response.data;
   }
 
-  // User CRUD
   async getUsers(params, token) {
     const response = await axios.get(`${USERS_SERVICE_URL}/users`, {
       params,
@@ -49,7 +47,6 @@ class UsersService {
     return response.data;
   }
 
-  // Friendships
   async getFriendships(params, token) {
     const response = await axios.get(`${USERS_SERVICE_URL}/friendships`, {
       params,
@@ -79,7 +76,6 @@ class UsersService {
     return response.data;
   }
 
-  // Timeline
   async getTimeline(params, token) {
     const response = await axios.get(`${USERS_SERVICE_URL}/timeline`, {
       params,

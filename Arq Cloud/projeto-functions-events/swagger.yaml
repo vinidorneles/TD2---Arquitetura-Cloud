@@ -1,0 +1,182 @@
+openapi: 3.0.3
+info:
+  title: VIBRA - Functions Events API
+  description: Serverless Functions para processamento assíncrono de eventos da plataforma VIBRA
+  version: 1.0.0
+  contact:
+    name: VIBRA Team
+    email: support@vibra.com
+
+servers:
+  - url: http://localhost:3003/api
+    description: Development server
+  - url: https://functions.vibra.com/api
+    description: Production server
+
+tags:
+  - name: Event Processing
+    description: Processamento de eventos
+  - name: Notifications
+    description: Sistema de notificações
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Verifica se as Functions estão funcionando
+      responses:
+        '200':
+          description: Functions funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  functions:
+                    type: array
+                    items:
+                      type: string
+                    example: [createReviewEvent, sendNotification]
+
+  /events/review/create:
+    post:
+      tags:
+        - Event Processing
+      summary: Processar criação de review
+      description: Function que processa eventos de criação de review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventId
+                - userId
+                - rating
+              properties:
+                eventId:
+                  type: integer
+                  example: 1
+                userId:
+                  type: string
+                  example: 507f1f77bcf86cd799439011
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  example: Evento incrível!
+      responses:
+        '200':
+          description: Review event processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Review event processed successfully
+                  eventId:
+                    type: integer
+                  processed:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid data
+        '500':
+          description: Processing error
+
+  /notifications/send:
+    post:
+      tags:
+        - Notifications
+      summary: Enviar notificação
+      description: Function para envio de notificações aos usuários
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - type
+                - message
+              properties:
+                userId:
+                  type: string
+                  example: 507f1f77bcf86cd799439011
+                type:
+                  type: string
+                  enum: [event_reminder, friend_request, review_created, event_created]
+                  example: review_created
+                message:
+                  type: string
+                  example: Novo review foi criado para o evento Festival de Música
+                eventId:
+                  type: integer
+                  example: 1
+                metadata:
+                  type: object
+                  properties:
+                    eventName:
+                      type: string
+                    rating:
+                      type: integer
+      responses:
+        '200':
+          description: Notification sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Notification sent successfully
+                  notificationId:
+                    type: string
+                  sent:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid notification data
+        '500':
+          description: Notification failed
+
+components:
+  schemas:
+    EventProcessingResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        eventId:
+          type: integer
+        processed:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+    NotificationResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        notificationId:
+          type: string
+        sent:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
