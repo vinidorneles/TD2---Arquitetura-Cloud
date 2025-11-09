@@ -1,0 +1,17 @@
+{
+  "bindings": [
+    {
+      "type": "serviceBusTrigger",
+      "direction": "in",
+      "name": "message",
+      "queueName": "event.created",
+      "connection": "AZURE_SERVICE_BUS_CONNECTION_STRING"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ],
+  "scriptFile": "../dist/EventCreatedFunction/index.js"
+}

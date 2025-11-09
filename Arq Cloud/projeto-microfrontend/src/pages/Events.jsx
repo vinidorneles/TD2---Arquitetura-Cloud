@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getEvents, globalSearch } from '../services/api';
 import { Link } from 'react-router-dom';
-import './Events.css';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Search, MapPin, Calendar, Filter, X } from 'lucide-react';
 
 function Events() {
   const [events, setEvents] = useState([]);
@@ -9,7 +12,16 @@ function Events() {
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('');
 
-  const categories = ['Show', 'Festa', 'Bar', 'Balada', 'Festival', 'Teatro', 'Esporte'];
+  const categories = [
+    { value: '', label: 'Todos', color: 'bg-gray-100 text-gray-800' },
+    { value: 'Show', label: 'Show', color: 'bg-purple-100 text-purple-800' },
+    { value: 'Festa', label: 'Festa', color: 'bg-pink-100 text-pink-800' },
+    { value: 'Bar', label: 'Bar', color: 'bg-amber-100 text-amber-800' },
+    { value: 'Balada', label: 'Balada', color: 'bg-fuchsia-100 text-fuchsia-800' },
+    { value: 'Festival', label: 'Festival', color: 'bg-orange-100 text-orange-800' },
+    { value: 'Teatro', label: 'Teatro', color: 'bg-blue-100 text-blue-800' },
+    { value: 'Esporte', label: 'Esporte', color: 'bg-green-100 text-green-800' },
+  ];
 
   useEffect(() => {
     loadEvents();
@@ -38,6 +50,7 @@ function Events() {
     try {
       const response = await globalSearch(searchQuery);
       setEvents(response.data.events);
+      setCategory(''); // Clear category filter when searching
     } catch (error) {
       console.error('Error searching:', error);
     } finally {
@@ -45,70 +58,158 @@ function Events() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchQuery('');
+    setCategory('');
+    loadEvents();
+  };
+
   return (
-    <div className="events-page">
-      <div className="events-header">
-        <h1>Eventos</h1>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-6">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Explore Eventos
+          </h1>
 
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="Buscar eventos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit">Buscar</button>
-        </form>
-
-        <div className="categories">
-          <button
-            className={!category ? 'category-btn active' : 'category-btn'}
-            onClick={() => setCategory('')}
-          >
-            Todos
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              className={category === cat ? 'category-btn active' : 'category-btn'}
-              onClick={() => setCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar eventos, locais, categorias..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button type="submit">
+              Buscar
+            </Button>
+            {(searchQuery || category) && (
+              <Button variant="outline" onClick={clearFilters} type="button">
+                <X className="h-4 w-4 mr-2" />
+                Limpar
+              </Button>
+            )}
+          </form>
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading">Carregando...</div>
-      ) : (
-        <div className="events-grid">
-          {events.length > 0 ? (
-            events.map((event) => (
-              <Link key={event.id} to={`/events/${event.id}`} className="event-card">
-                {event.imageUrl && (
-                  <div className="event-image">
-                    <img src={event.imageUrl} alt={event.name} />
-                  </div>
-                )}
-                <div className="event-content">
-                  <span className="event-category">{event.category}</span>
-                  <h3>{event.name}</h3>
-                  <p className="event-description">{event.description}</p>
-                  <div className="event-meta">
-                    <span className="event-date">
-                      {new Date(event.startDate).toLocaleDateString('pt-BR')}
-                    </span>
-                    <span className="event-location">{event.location}</span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          ) : (
-            <p className="empty-state">Nenhum evento encontrado</p>
-          )}
+      <div className="container mx-auto px-4 py-8">
+        {/* Category Filters */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Categorias
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <Button
+                key={cat.value}
+                variant={category === cat.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCategory(cat.value)}
+                className="rounded-full"
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Events Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Carregando eventos...</p>
+            </div>
+          </div>
+        ) : events.length > 0 ? (
+          <>
+            <div className="text-sm text-muted-foreground mb-4">
+              {events.length} evento(s) encontrado(s)
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {events.map((event) => (
+                <Link key={event.id} to={`/events/${event.id}`}>
+                  <Card className="h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group">
+                    {/* Event Image */}
+                    <div className="relative h-48 bg-gradient-to-br from-purple-500 to-blue-500 overflow-hidden">
+                      {event.imageUrl ? (
+                        <img
+                          src={event.imageUrl}
+                          alt={event.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white">
+                          <Calendar className="h-16 w-16 opacity-50" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/90 backdrop-blur-sm text-gray-900">
+                          {event.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Event Content */}
+                    <CardHeader>
+                      <CardTitle className="text-lg line-clamp-2 group-hover:text-purple-600 transition-colors">
+                        {event.name}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {event.description}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-purple-600" />
+                          <span>
+                            {new Date(event.startDate).toLocaleDateString('pt-BR', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-blue-600" />
+                          <span className="line-clamp-1">{event.location}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-20">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-12 w-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Nenhum evento encontrado
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Tente ajustar seus filtros ou buscar por algo diferente
+            </p>
+            <Button onClick={clearFilters} variant="outline">
+              Ver todos os eventos
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

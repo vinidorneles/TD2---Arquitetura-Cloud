@@ -1,0 +1,263 @@
+version: '3.8'
+
+services:
+  # ===================
+  # DATABASES
+  # ===================
+
+  mongodb:
+    image: mongo:6.0
+    container_name: vibra-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: vibra_users
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - vibra-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: vibra-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourStrong@Passw0rd"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./projeto-microservico-products/src/config/initDatabase.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - vibra-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "YourStrong@Passw0rd" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ===================
+  # MESSAGE BROKER
+  # ===================
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: vibra-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: vibra
+      RABBITMQ_DEFAULT_PASS: vibra123
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - vibra-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================
+  # MICROSERVICES
+  # ===================
+
+  users-service:
+    build:
+      context: ./projeto-microservico-users
+      dockerfile: Dockerfile
+    container_name: vibra-users-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # MongoDB connection (using local container)
+      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/vibra_users?authSource=admin
+      # OR use MongoDB Atlas (comment above, uncomment below)
+      # MONGODB_URI: mongodb+srv://Vibra:Vibra123@cluster0.yscdoft.mongodb.net/vibra_users
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  events-service:
+    build:
+      context: ./projeto-microservico-products
+      dockerfile: Dockerfile
+    container_name: vibra-events-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      # SQL Server connection (using local container)
+      DB_SERVER: sqlserver
+      DB_PORT: 1433
+      DB_USER: sa
+      DB_PASSWORD: "YourStrong@Passw0rd"
+      DB_DATABASE: vibra_events
+      DB_ENCRYPT: "false"
+      DB_TRUST_SERVER_CERTIFICATE: "true"
+      # OR use Azure SQL Server (comment above, uncomment below)
+      # DB_SERVER: vibra-sql-server.database.windows.net
+      # DB_USER: vibra
+      # DB_PASSWORD: YourAzurePassword!
+      # DB_DATABASE: vibra_events
+      # DB_ENCRYPT: true
+      # DB_TRUST_SERVER_CERTIFICATE: false
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "3002:3002"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  functions-service:
+    build:
+      context: ./projeto-functions-events
+      dockerfile: Dockerfile
+    container_name: vibra-functions-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_SERVER: sqlserver
+      DB_PORT: 1433
+      DB_USER: sa
+      DB_PASSWORD: "YourStrong@Passw0rd"
+      DB_DATABASE: vibra_events
+      DB_ENCRYPT: "false"
+      DB_TRUST_SERVER_CERTIFICATE: "true"
+      RABBITMQ_URL: amqp://vibra:vibra123@rabbitmq:5672
+    ports:
+      - "3003:3003"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  bff-gateway:
+    build:
+      context: ./projeto-bff-gateway
+      dockerfile: Dockerfile
+    container_name: vibra-bff-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      USERS_SERVICE_URL: http://users-service:3001
+      EVENTS_SERVICE_URL: http://events-service:3002
+      FUNCTIONS_SERVICE_URL: http://functions-service:3003
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+    ports:
+      - "3000:3000"
+    depends_on:
+      users-service:
+        condition: service_healthy
+      events-service:
+        condition: service_healthy
+      functions-service:
+        condition: service_healthy
+    networks:
+      - vibra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===================
+  # FRONTEND
+  # ===================
+
+  frontend:
+    build:
+      context: ./projeto-microfrontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+    container_name: vibra-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      bff-gateway:
+        condition: service_healthy
+    networks:
+      - vibra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ===================
+# NETWORKS
+# ===================
+
+networks:
+  vibra-network:
+    driver: bridge
+    name: vibra-network
+
+# ===================
+# VOLUMES
+# ===================
+
+volumes:
+  mongodb_data:
+    name: vibra-mongodb-data
+  sqlserver_data:
+    name: vibra-sqlserver-data
+  rabbitmq_data:
+    name: vibra-rabbitmq-data
