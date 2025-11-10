@@ -742,43 +742,10 @@ npm run docs:diagrams
 
 ---
 
-## 🚧 Próximos Passos
-
-### Features Pendentes
-
-- [ ] Implementar upload de imagens (Azure Blob Storage)
-- [ ] Chat em tempo real (WebSockets)
-- [ ] Notificações push
-- [ ] Sistema de recomendações (ML)
-- [ ] Analytics e métricas (Application Insights)
-
-### Melhorias Técnicas
-
-- [ ] Kubernetes deployment
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Monitoring e logging (ELK Stack)
-- [ ] Distributed tracing (Jaeger)
-- [ ] API Gateway avançado (Kong/AWS API Gateway)
-- [ ] GraphQL Federation
-- [ ] CQRS + Event Sourcing
-
----
-
-## 📞 Contato
-
-**Equipe de Desenvolvimento**:
-- [NOME ALUNO 1] - [email@exemplo.com]
-- [NOME ALUNO 2] - [email@exemplo.com]
-- [NOME ALUNO 3] - [email@exemplo.com]
-
-**Repositório**: [https://github.com/...]
-
----
-
 ## 📄 Licença
 
 MIT License - veja [LICENSE](LICENSE) para detalhes.
 
 ---
 
-**Feito com ❤️ para a disciplina de Arquitetura Cloud**
+
