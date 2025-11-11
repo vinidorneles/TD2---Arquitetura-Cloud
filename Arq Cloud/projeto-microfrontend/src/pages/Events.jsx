@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
-import { getEvents, globalSearch } from '../services/api';
-import { Link } from 'react-router-dom';
+import { getEvents, globalSearch, deleteEvent } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, MapPin, Calendar, Filter, X } from 'lucide-react';
+import { Search, MapPin, Calendar, Filter, X, Plus, Edit, Trash2 } from 'lucide-react';
 
 function Events() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem('userEmail');
+    setIsAdmin(userEmail === 'admin@vibra.com');
+  }, []);
 
   const categories = [
     { value: '', label: 'Todos', color: 'bg-gray-100 text-gray-800' },
@@ -40,6 +47,25 @@ function Events() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteEvent = async (e, eventId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+    try {
+      await deleteEvent(eventId);
+      alert('Evento excluído com sucesso!');
+      loadEvents();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erro ao excluir evento');
+    }
+  };
+
+  const handleEditEvent = (e, eventId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/edit-event/${eventId}`);
   };
 
   const handleSearch = async (e) => {
@@ -187,6 +213,28 @@ function Events() {
                           <span className="line-clamp-1">{event.location}</span>
                         </div>
                       </div>
+                      {isAdmin && (
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleEditEvent(e, event.id)}
+                            className="flex-1"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => handleDeleteEvent(e, event.id)}
+                            className="flex-1"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Excluir
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
@@ -210,6 +258,17 @@ function Events() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button - Only for Admin */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/create-event')}
+          className="fixed bottom-8 right-8 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-full shadow-2xl hover:shadow-purple-500/50 hover:scale-110 transition-all duration-300 z-50"
+          title="Criar Evento"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
     </div>
   );
 }

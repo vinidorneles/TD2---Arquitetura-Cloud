@@ -4,88 +4,88 @@ const EVENTS_SERVICE_URL = process.env.EVENTS_SERVICE_URL;
 
 class EventsService {
   async getEvents(params) {
-    const response = await axios.get(`${EVENTS_SERVICE_URL}/events`, { params });
+    const response = await axios.get(`${EVENTS_SERVICE_URL}/api/events`, { params });
     return response.data;
   }
 
   async getEventById(id) {
-    const response = await axios.get(`${EVENTS_SERVICE_URL}/events/${id}`);
+    const response = await axios.get(`${EVENTS_SERVICE_URL}/api/events/${id}`);
     return response.data;
   }
 
   async createEvent(data, userId) {
-    const response = await axios.post(`${EVENTS_SERVICE_URL}/events`, data, {
+    const response = await axios.post(`${EVENTS_SERVICE_URL}/api/events`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async updateEvent(id, data, userId) {
-    const response = await axios.put(`${EVENTS_SERVICE_URL}/events/${id}`, data, {
+    const response = await axios.put(`${EVENTS_SERVICE_URL}/api/events/${id}`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async deleteEvent(id, userId) {
-    const response = await axios.delete(`${EVENTS_SERVICE_URL}/events/${id}`, {
+    const response = await axios.delete(`${EVENTS_SERVICE_URL}/api/events/${id}`, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async getCategories() {
-    const response = await axios.get(`${EVENTS_SERVICE_URL}/events/categories`);
+    const response = await axios.get(`${EVENTS_SERVICE_URL}/api/events/categories`);
     return response.data;
   }
 
   async getReviews(eventId, params) {
-    const response = await axios.get(`${EVENTS_SERVICE_URL}/events/${eventId}/reviews`, { params });
+    const response = await axios.get(`${EVENTS_SERVICE_URL}/api/events/${eventId}/reviews`, { params });
     return response.data;
   }
 
   async createReview(eventId, data, userId) {
-    const response = await axios.post(`${EVENTS_SERVICE_URL}/events/${eventId}/reviews`, data, {
+    const response = await axios.post(`${EVENTS_SERVICE_URL}/api/events/${eventId}/reviews`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async updateReview(reviewId, data, userId) {
-    const response = await axios.put(`${EVENTS_SERVICE_URL}/reviews/${reviewId}`, data, {
+    const response = await axios.put(`${EVENTS_SERVICE_URL}/api/reviews/${reviewId}`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async deleteReview(reviewId, userId) {
-    const response = await axios.delete(`${EVENTS_SERVICE_URL}/reviews/${reviewId}`, {
+    const response = await axios.delete(`${EVENTS_SERVICE_URL}/api/reviews/${reviewId}`, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async getInterests(eventId, params) {
-    const response = await axios.get(`${EVENTS_SERVICE_URL}/events/${eventId}/interest`, { params });
+    const response = await axios.get(`${EVENTS_SERVICE_URL}/api/events/${eventId}/interest`, { params });
     return response.data;
   }
 
   async createInterest(eventId, data, userId) {
-    const response = await axios.post(`${EVENTS_SERVICE_URL}/events/${eventId}/interest`, data, {
+    const response = await axios.post(`${EVENTS_SERVICE_URL}/api/events/${eventId}/interest`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async updateInterest(eventId, interestId, data, userId) {
-    const response = await axios.put(`${EVENTS_SERVICE_URL}/events/${eventId}/interest/${interestId}`, data, {
+    const response = await axios.put(`${EVENTS_SERVICE_URL}/api/events/${eventId}/interest/${interestId}`, data, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;
   }
 
   async deleteInterest(eventId, interestId, userId) {
-    const response = await axios.delete(`${EVENTS_SERVICE_URL}/events/${eventId}/interest/${interestId}`, {
+    const response = await axios.delete(`${EVENTS_SERVICE_URL}/api/events/${eventId}/interest/${interestId}`, {
       headers: { 'X-User-Id': userId }
     });
     return response.data;

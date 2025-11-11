@@ -182,6 +182,15 @@ exports.createFriendship = async (req, res) => {
   }
 };
 
+exports.deleteFriendship = async (req, res) => {
+  try {
+    await usersService.deleteFriendship(req.params.id, req.token);
+    res.status(204).send();
+  } catch (error) {
+    res.status(error.response?.status || 500).json(error.response?.data || { message: error.message });
+  }
+};
+
 exports.getNotifications = async (req, res) => {
   try {
     const result = await functionsService.getUserNotifications(req.userId);

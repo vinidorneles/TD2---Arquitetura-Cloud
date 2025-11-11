@@ -4,19 +4,27 @@ import './App.css';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
-import EventDetail from './pages/EventDetail';
+import EventDetailNew from './pages/EventDetailNew';
+import Friends from './pages/Friends';
+import CreateEvent from './pages/CreateEvent';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const userEmail = localStorage.getItem('userEmail');
     setIsAuthenticated(!!token);
+    setIsAdmin(userEmail === 'admin@vibra.com');
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
     setIsAuthenticated(false);
+    setIsAdmin(false);
   };
 
   return (
@@ -28,6 +36,10 @@ function App() {
             <div className="navbar-links">
               <Link to="/dashboard">Dashboard</Link>
               <Link to="/events">Eventos</Link>
+              <Link to="/friends" className="find-friends-btn">🔍 Encontrar Amigos</Link>
+              {isAdmin && (
+                <Link to="/create-event" className="create-event-btn">➕ Criar Evento</Link>
+              )}
               <button onClick={handleLogout} className="logout-btn">Sair</button>
             </div>
           </nav>
@@ -68,7 +80,45 @@ function App() {
             path="/events/:id"
             element={
               isAuthenticated ? (
-                <EventDetail />
+                <EventDetailNew />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              isAuthenticated ? (
+                <Friends />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/create-event"
+            element={
+              isAuthenticated ? (
+                isAdmin ? (
+                  <CreateEvent />
+                ) : (
+                  <Navigate to="/dashboard" />
+                )
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/edit-event/:id"
+            element={
+              isAuthenticated ? (
+                isAdmin ? (
+                  <CreateEvent />
+                ) : (
+                  <Navigate to="/dashboard" />
+                )
               ) : (
                 <Navigate to="/login" />
               )

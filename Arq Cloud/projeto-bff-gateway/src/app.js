@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 const routes = require('./routes');
 
 const app = express();
@@ -14,13 +16,40 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  credentials: true
-}));
+// Configure CORS to allow frontend origin(s). In development, include Vite default origin.
+const rawCorsOrigins = process.env.CORS_ORIGIN || '';
+const allowedOrigins = rawCorsOrigins ? rawCorsOrigins.split(',').map(s => s.trim()) : [];
+if (process.env.NODE_ENV !== 'production') {
+  // add vite dev server default origin for convenience
+  if (!allowedOrigins.includes('http://localhost:5173')) allowedOrigins.push('http://localhost:5173');
+}
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // allow non-browser clients like curl/postman (no origin)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 app.get('/health', (req, res) => {
   res.json({

@@ -56,9 +56,9 @@ exports.getEvents = async (req, res) => {
       );
     }
 
-    query += ' ORDER BY startDate DESC';
-
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+
+    query += ' ORDER BY startDate DESC';
     let countRequest = pool.request();
     params.forEach(p => countRequest.input(p.name, p.type, p.value));
     const countResult = await countRequest.query(countQuery);

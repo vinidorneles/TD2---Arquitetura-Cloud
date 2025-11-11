@@ -21,6 +21,8 @@ function Login({ onLogin }) {
     try {
       const response = await login(loginData);
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userEmail', loginData.email);
+      localStorage.setItem('userName', response.data.user?.name || 'Usuário');
       onLogin();
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao fazer login');

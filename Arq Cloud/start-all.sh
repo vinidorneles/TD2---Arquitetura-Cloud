@@ -27,19 +27,23 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Verifica se Docker Compose está instalado
-if ! command -v docker-compose &> /dev/null; then
+# Detecta comando docker compose (v2) ou docker-compose (v1)
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+    echo -e "${BLUE}🐳 Docker Compose v2 encontrado!${NC}"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+    echo -e "${BLUE}🐳 Docker Compose v1 encontrado!${NC}"
+else
     echo -e "${RED}❌ Docker Compose não está instalado!${NC}"
     echo "Por favor, instale o Docker Compose: https://docs.docker.com/compose/install/"
     exit 1
 fi
-
-echo -e "${BLUE}🐳 Docker e Docker Compose encontrados!${NC}"
 echo ""
 
 # Para containers antigos (se existirem)
 echo -e "${YELLOW}🛑 Parando containers antigos...${NC}"
-docker-compose down 2>/dev/null || true
+$DOCKER_COMPOSE down 2>/dev/null || true
 echo ""
 
 # Remove volumes antigos (CUIDADO: apaga dados!)
@@ -47,18 +51,18 @@ read -p "Deseja remover volumes antigos? (limpa banco de dados) [s/N]: " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Ss]$ ]]; then
     echo -e "${YELLOW}🗑️  Removendo volumes antigos...${NC}"
-    docker-compose down -v
+    $DOCKER_COMPOSE down -v
     echo ""
 fi
 
 # Build das imagens
 echo -e "${BLUE}🔨 Construindo imagens Docker...${NC}"
-docker-compose build --parallel
+$DOCKER_COMPOSE build --parallel 2>/dev/null || $DOCKER_COMPOSE build
 echo ""
 
 # Inicia os serviços
 echo -e "${GREEN}🚀 Iniciando todos os serviços...${NC}"
-docker-compose up -d
+$DOCKER_COMPOSE up -d
 echo ""
 
 # Aguarda serviços ficarem saudáveis
@@ -67,37 +71,52 @@ echo ""
 
 check_health() {
     local service=$1
-    local url=$2
     local max_attempts=30
     local attempt=1
 
     echo -n "   ${service}: "
 
     while [ $attempt -le $max_attempts ]; do
-        if docker-compose exec -T $service wget --no-verbose --tries=1 --spider $url 2>/dev/null; then
-            echo -e "${GREEN}✓ OK${NC}"
+        # Checa se container está healthy
+        local health_status=$($DOCKER_COMPOSE ps --format json 2>/dev/null | grep -o "\"Health\":\"[^\"]*\"" | grep $service | cut -d'"' -f4)
+
+        if [[ "$health_status" == "healthy" ]]; then
+            echo -e "${GREEN}✓ Healthy${NC}"
             return 0
+        elif [[ "$health_status" == "starting" ]]; then
+            echo -n "."
+        else
+            # Tenta ping direto se não tiver health check
+            if curl -f -s http://localhost:${2} > /dev/null 2>&1; then
+                echo -e "${GREEN}✓ OK${NC}"
+                return 0
+            fi
+            echo -n "."
         fi
-        echo -n "."
+
         sleep 2
         ((attempt++))
     done
 
-    echo -e "${RED}✗ FALHOU${NC}"
+    echo -e "${YELLOW}⚠ Timeout${NC}"
     return 1
 }
 
 # Aguarda bancos de dados
-echo "Verificando bancos de dados..."
-sleep 10
+echo "Verificando bancos de dados e serviços..."
+sleep 15
 
 # Verifica saúde dos serviços
-echo "Verificando saúde dos microserviços..."
-check_health "users-service" "http://localhost:3001/health" || true
-check_health "events-service" "http://localhost:3002/health" || true
-check_health "functions-service" "http://localhost:3003/health" || true
-check_health "bff-gateway" "http://localhost:3000/health" || true
-check_health "frontend" "http://localhost:5173" || true
+echo ""
+echo "Status dos serviços:"
+check_health "mongodb" "27017" || true
+check_health "sqlserver" "1433" || true
+check_health "rabbitmq" "15672" || true
+check_health "users-service" "3001" || true
+check_health "events-service" "3002" || true
+check_health "functions-service" "3003" || true
+check_health "bff-gateway" "3000" || true
+check_health "frontend" "5173" || true
 
 echo ""
 echo "========================================="
@@ -133,13 +152,17 @@ echo -e "  ${BLUE}BFF:${NC}      http://localhost:3000/api-docs"
 echo ""
 echo "📊 Logs:"
 echo ""
-echo "  docker-compose logs -f               # Todos os serviços"
-echo "  docker-compose logs -f frontend      # Apenas frontend"
-echo "  docker-compose logs -f bff-gateway   # Apenas BFF"
+echo "  $DOCKER_COMPOSE logs -f               # Todos os serviços"
+echo "  $DOCKER_COMPOSE logs -f frontend      # Apenas frontend"
+echo "  $DOCKER_COMPOSE logs -f bff-gateway   # Apenas BFF"
 echo ""
 echo "🛑 Para parar:"
 echo ""
-echo "  docker-compose down                  # Para tudo"
-echo "  docker-compose down -v               # Para e remove volumes"
+echo "  $DOCKER_COMPOSE down                  # Para tudo"
+echo "  $DOCKER_COMPOSE down -v               # Para e remove volumes"
+echo ""
+echo "📊 Ver status dos containers:"
+echo ""
+echo "  $DOCKER_COMPOSE ps                    # Lista containers"
 echo ""
 echo "========================================="

@@ -21,6 +21,7 @@ router.delete('/users/:id', auth, proxyController.deleteUser);
 
 router.get('/friendships', auth, proxyController.getFriendships);
 router.post('/friendships', auth, proxyController.createFriendship);
+router.delete('/friendships/:id', auth, proxyController.deleteFriendship);
 
 router.get('/events', proxyController.getEvents);
 router.get('/events/:id', proxyController.getEventById);

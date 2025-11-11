@@ -26,8 +26,8 @@ const startServer = async () => {
 
     app.listen(PORT, () => {
       console.log(`🚀 VIBRA Events Service running on port ${PORT}`);
-      console.log(`📚 API Documentation: http:
-      console.log(`💚 Health check: http:
+      console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+      console.log(`💚 Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
