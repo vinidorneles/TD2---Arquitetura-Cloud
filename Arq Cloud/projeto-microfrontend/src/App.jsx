@@ -16,7 +16,7 @@ function App() {
     const token = localStorage.getItem('token');
     const userEmail = localStorage.getItem('userEmail');
     setIsAuthenticated(!!token);
-    setIsAdmin(userEmail === 'admin@vibra.com');
+    setIsAdmin(userEmail?.startsWith('admin'));
   }, []);
 
   const handleLogout = () => {

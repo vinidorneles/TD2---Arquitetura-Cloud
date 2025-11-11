@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getEventDetails, getReviews, createReviewViaEvent } from '../services/api';
+import { getEventById, getReviews, createReviewViaEvent, getInterests, createInterest, updateInterest, deleteInterest } from '../services/api';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
-import { Calendar, MapPin, Users, DollarSign, Star, Edit, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Star, Edit, ArrowLeft, Heart, Check } from 'lucide-react';
 
 function EventDetailNew() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [participants, setParticipants] = useState([]);
+  const [interests, setInterests] = useState({ interested: [], going: [] });
+  const [totalInterested, setTotalInterested] = useState(0);
+  const [totalGoing, setTotalGoing] = useState(0);
+  const [userInterest, setUserInterest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
@@ -27,19 +30,60 @@ function EventDetailNew() {
   const loadEventDetails = async () => {
     setLoading(true);
     try {
-      const [eventRes, reviewsRes] = await Promise.all([
-        getEventDetails(id),
-        getReviews(id)
-      ]);
-
+      // Carregar evento primeiro
+      const eventRes = await getEventById(id);
+      console.log('Event response:', eventRes);
       setEvent(eventRes.data);
-      setReviews(reviewsRes.data?.reviews || []);
-      // Simular participantes (em produção viriam da API)
-      setParticipants(eventRes.data.participants || []);
+
+      // Reviews desabilitado
+      setReviews([]);
+
+      try {
+        const interestsRes = await getInterests(id);
+        const interestsData = interestsRes.data;
+        setTotalInterested(interestsData.totalInterested || 0);
+        setTotalGoing(interestsData.totalGoing || 0);
+
+        // Agrupar por tipo
+        const interestedUsers = interestsData.interests?.filter(i => i.status === 'interested') || [];
+        const goingUsers = interestsData.interests?.filter(i => i.status === 'going') || [];
+        setInterests({ interested: interestedUsers, going: goingUsers });
+
+        // Verificar se o usuário já demonstrou interesse
+        const userId = localStorage.getItem('userId');
+        const existingInterest = interestsData.interests?.find(i => i.userId === userId);
+        setUserInterest(existingInterest || null);
+      } catch (err) {
+        console.error('Error loading interests:', err);
+      }
     } catch (error) {
       console.error('Error loading event details:', error);
+      setEvent(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInterest = async (status) => {
+    try {
+      if (userInterest) {
+        if (userInterest.status === status) {
+          // Se clicar no mesmo status, remove o interesse
+          await deleteInterest(id, userInterest.id);
+          setUserInterest(null);
+        } else {
+          // Se clicar em status diferente, atualiza
+          await updateInterest(id, userInterest.id, { status });
+          setUserInterest({ ...userInterest, status });
+        }
+      } else {
+        // Cria novo interesse
+        const result = await createInterest(id, { status });
+        setUserInterest(result.data);
+      }
+      loadEventDetails();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Erro ao registrar interesse');
     }
   };
 
@@ -112,9 +156,9 @@ function EventDetailNew() {
                 <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-sm mb-4">
                   {event.category}
                 </span>
-                <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
+                <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
                 <p className="text-white/90">
-                  Organizado por: {event.organizer?.name || 'Admin VIBRA'}
+                  Organizado por: Admin VIBRA
                 </p>
               </div>
             </div>
@@ -149,18 +193,18 @@ function EventDetailNew() {
                   <Users className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Capacidade</p>
-                  <p className="font-semibold">{event.capacity} pessoas</p>
+                  <p className="text-sm text-gray-500">Pessoas</p>
+                  <p className="font-semibold">{totalInterested + totalGoing} interessadas</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="bg-yellow-100 p-3 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-yellow-600" />
+                  <Star className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Ingresso</p>
-                  <p className="font-semibold">R$ {event.ticketPrice?.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">Avaliação</p>
+                  <p className="font-semibold">{event.averageRating?.toFixed(1) || 'N/A'} ⭐</p>
                 </div>
               </div>
             </div>
@@ -180,34 +224,64 @@ function EventDetailNew() {
               </CardContent>
             </Card>
 
-            {/* Participants */}
+            {/* Interested Users */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Participantes ({participants.length})
+                  <Heart className="h-5 w-5" />
+                  Pessoas Interessadas
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {participants.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    Seja o primeiro a confirmar presença!
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {participants.map((participant, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={participant.profilePicture} />
-                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-xs">
-                            {getInitials(participant.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm truncate">{participant.name}</span>
+                <div className="space-y-4">
+                  {/* Confirmados */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Check className="h-4 w-4 text-green-600" />
+                      <h4 className="font-semibold text-sm">Vão participar ({totalGoing})</h4>
+                    </div>
+                    {interests.going.length === 0 ? (
+                      <p className="text-gray-500 text-sm pl-6">Ninguém confirmou ainda</p>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pl-6">
+                        {interests.going.map((interest, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-500 text-white text-xs">
+                                {interest.userId?.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm truncate">{interest.userId}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+
+                  {/* Interessados */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Heart className="h-4 w-4 text-purple-600" />
+                      <h4 className="font-semibold text-sm">Interessados ({totalInterested})</h4>
+                    </div>
+                    {interests.interested.length === 0 ? (
+                      <p className="text-gray-500 text-sm pl-6">Seja o primeiro a demonstrar interesse!</p>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pl-6">
+                        {interests.interested.map((interest, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-xs">
+                                {interest.userId?.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm truncate">{interest.userId}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -324,24 +398,44 @@ function EventDetailNew() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-700">{event.location?.address}</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {event.location?.city}, {event.location?.state}
-                </p>
-                <p className="text-sm text-gray-600">{event.location?.country}</p>
+                <p className="text-sm text-gray-700">{event.location}</p>
               </CardContent>
             </Card>
 
-            {/* Actions */}
+            {/* Interest Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Confirmar Presença</CardTitle>
+                <CardTitle>Você tem interesse?</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Button className="w-full">Participar</Button>
-                <p className="text-xs text-gray-500 text-center mt-3">
-                  {event.capacity - participants.length} vagas disponíveis
-                </p>
+              <CardContent className="space-y-3">
+                <Button
+                  className={`w-full ${
+                    userInterest?.status === 'going'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  onClick={() => handleInterest('going')}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  {userInterest?.status === 'going' ? 'Vou participar!' : 'Vou participar'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className={`w-full ${
+                    userInterest?.status === 'interested'
+                      ? 'border-purple-600 text-purple-600 bg-purple-50'
+                      : ''
+                  }`}
+                  onClick={() => handleInterest('interested')}
+                >
+                  <Heart className={`h-4 w-4 mr-2 ${userInterest?.status === 'interested' ? 'fill-current' : ''}`} />
+                  {userInterest?.status === 'interested' ? 'Tenho interesse!' : 'Tenho interesse'}
+                </Button>
+                {userInterest && (
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Clique novamente para remover sua escolha
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -16,13 +16,14 @@ exports.getReviews = async (req, res) => {
       params.push({ name: 'rating', type: sql.Int, value: parseInt(rating) });
     }
 
-    query += ' ORDER BY createdAt DESC';
-
+    // Get count first without ORDER BY
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
     let countRequest = pool.request();
     params.forEach(p => countRequest.input(p.name, p.type, p.value));
     const countResult = await countRequest.query(countQuery);
     const total = countResult.recordset[0].total;
+
+    query += ' ORDER BY createdAt DESC';
 
     const avgResult = await pool.request()
       .input('eventId', sql.Int, id)

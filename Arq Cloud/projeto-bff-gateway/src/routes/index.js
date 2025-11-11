@@ -36,6 +36,11 @@ router.get('/events/:eventId/reviews', proxyController.getReviews);
 router.put('/reviews/:id', auth, proxyController.updateReview);
 router.delete('/reviews/:id', auth, proxyController.deleteReview);
 
+router.get('/events/:eventId/interest', proxyController.getInterests);
+router.post('/events/:eventId/interest', auth, proxyController.createInterest);
+router.put('/events/:eventId/interest/:interestId', auth, proxyController.updateInterest);
+router.delete('/events/:eventId/interest/:interestId', auth, proxyController.deleteInterest);
+
 router.get('/notifications', auth, proxyController.getNotifications);
 
 module.exports = router;

@@ -200,4 +200,40 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
+exports.getInterests = async (req, res) => {
+  try {
+    const result = await eventsService.getInterests(req.params.eventId, req.query);
+    res.json(result);
+  } catch (error) {
+    res.status(error.response?.status || 500).json(error.response?.data || { message: error.message });
+  }
+};
+
+exports.createInterest = async (req, res) => {
+  try {
+    const result = await eventsService.createInterest(req.params.eventId, req.body, req.userId);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(error.response?.status || 500).json(error.response?.data || { message: error.message });
+  }
+};
+
+exports.updateInterest = async (req, res) => {
+  try {
+    const result = await eventsService.updateInterest(req.params.eventId, req.params.interestId, req.body, req.userId);
+    res.json(result);
+  } catch (error) {
+    res.status(error.response?.status || 500).json(error.response?.data || { message: error.message });
+  }
+};
+
+exports.deleteInterest = async (req, res) => {
+  try {
+    await eventsService.deleteInterest(req.params.eventId, req.params.interestId, req.userId);
+    res.status(204).send();
+  } catch (error) {
+    res.status(error.response?.status || 500).json(error.response?.data || { message: error.message });
+  }
+};
+
 module.exports = exports;
